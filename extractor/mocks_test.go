@@ -30,8 +30,8 @@ func (p *MockWriter) Write(actual []string) error {
 	for i, text := range row{
 		if text != actual[i]{
 			p.t.Error("Incorrect value in writer,",
-				row,
-				actual)
+				text,
+				actual[i])
 		}
 	}
 	p.expect = p.expect[1:]

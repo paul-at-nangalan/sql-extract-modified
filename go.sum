@@ -1,7 +1,9 @@
+github.com/lib/pq v1.10.4 h1:SO9z7FRPzA03QhHKJrH5BXA6HU1rS4V2nIVrrNC1iYk=
 github.com/lib/pq v1.10.4/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/paul-at-nangalan/db-util v0.0.0-20220505120700-a74123152817 h1:M3S0Gq7Ys2LM4MGlqpB3V37n87ExH0hL1SZsq9prwjI=
 github.com/paul-at-nangalan/db-util v0.0.0-20220505120700-a74123152817/go.mod h1:DGcdB/R5bUK7pNrdaIxlxOpWVQSfVLwO1njZ/tlFGqc=
 github.com/paul-at-nangalan/errorhandler v0.0.0-20210525060727-cba369c8785e/go.mod h1:+GfM6Su5CerpcLIHxjym4LzoLFCKSSQtlCnKYVjqqUM=
 github.com/paul-at-nangalan/errorhandler v0.0.0-20220524092750-75ec0f2eca41 h1:V7IwB6JpPaDqD1itevPX0bPLzcyJE4oH5zhHlYG8p4c=
 github.com/paul-at-nangalan/errorhandler v0.0.0-20220524092750-75ec0f2eca41/go.mod h1:+GfM6Su5CerpcLIHxjym4LzoLFCKSSQtlCnKYVjqqUM=
+github.com/paul-at-nangalan/json-config v0.0.0-20210525054146-58797ba49d12 h1:rIVAD4+siRKqmAljVRQhcE/TKVU6pnl4Se4NMW/wW4s=
 github.com/paul-at-nangalan/json-config v0.0.0-20210525054146-58797ba49d12/go.mod h1:7nMunP92vBn33Wq5QLSBJmvK85/vkyOszO0xxl6eArE=
