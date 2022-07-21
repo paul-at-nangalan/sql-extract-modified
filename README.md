@@ -4,7 +4,7 @@ Very basic sql extractor to get data modified since last extraction
 Currently postgres specific due to the ON CONFLICT clause
 
 ## Last read table
-This is used to store the last read time. 
+This is used to store the last read time. It should be created automatically.
 
 It should look like:
 __________________________________

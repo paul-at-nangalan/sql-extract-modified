@@ -4,22 +4,35 @@ import (
 	"database/sql"
 	"github.com/paul-at-nangalan/errorhandler/handlers"
 	"sql-extract-modified/models"
+	"time"
 )
 
+/// For testing
+type LastModifiedModel interface {
+	Get() time.Time
+	Set(lastreadtime time.Time)
+}
+
+/// Sub in any type of writer
 type Writer interface {
 	Write([]string)error
 }
 
 type Extractor struct{
-	lastmodifiedmodel *models.LastModifiedModel
+	lastmodifiedmodel LastModifiedModel
 	sqlstmt *sql.Stmt
 	batchsize int
 	lastmodfield string
 }
 
-//// The last mod where clause must always take $1 as the parameter
+//// The last mod where clause must always take $1 as the last read time parameter
 func NewExtractor(db *sql.DB, qry string, lastmodfield, lastmodtable, tablename string)*Extractor{
 	lastmodmodel := models.NewLastModifiedModel(db, lastmodtable, lastmodtable)
+	return newExtractor(db, lastmodmodel, qry,lastmodfield)
+}
+/////For testing we can inject a mock last modified model
+func newExtractor(db *sql.DB, lastmodmodel LastModifiedModel,
+	qry string, lastmodfield string)*Extractor {
 
 	fullquery := qry + ` LIMIT 500 OFFSET $2`
 	stmt, err := db.Prepare(fullquery)
@@ -31,6 +44,7 @@ func NewExtractor(db *sql.DB, qry string, lastmodfield, lastmodtable, tablename 
 		batchsize: 500, ///make sure this matches the statement
 		lastmodfield: lastmodfield,
 	}
+
 }
 
 func (p *Extractor)Extract(writer Writer){
@@ -69,3 +83,4 @@ func (p *Extractor)Extract(writer Writer){
 		}()
 	}
 }
+

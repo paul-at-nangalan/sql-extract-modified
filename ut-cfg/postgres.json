@@ -1,0 +1,9 @@
+{
+  "Username": "$UNIT_DB_USER",
+  "Password": "$UNIT_DB_PASSWD",
+  "Host":"172.31.17.205",
+  "CAFile":"$HOME/rds-ca-2019-root.pem",
+  "Database": "client_holdings_staging",
+  "Sslmode": "verify-ca"
+
+}

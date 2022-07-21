@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"time"
+	"github.com/paul-at-nangalan/db-util/migrator"
 )
 import "github.com/paul-at-nangalan/errorhandler/handlers"
 
@@ -14,6 +15,16 @@ type LastModifiedModel struct{
 
 func NewLastModifiedModel(db *sql.DB, lastmodtable, datatablename string)*LastModifiedModel{
 	lastmodfield := "lastread"
+	tablenamefield := "tablename"
+	mig := migrator.NewMigrator(db, migrator.DBTYPE_POSTGRES)
+	cols := map[string]string{
+		lastmodfield: "text",
+		tablenamefield: "text",
+	}
+	indx := []string{tablenamefield}
+	primekey := []string{tablenamefield}
+	mig.Migrate("create-last-mod-table", lastmodtable, cols, indx, primekey)
+
 	getqry := `SELECT ` + lastmodfield + ` FROM ` + lastmodtable +
 		` WHERE tablename=` + datatablename
 
