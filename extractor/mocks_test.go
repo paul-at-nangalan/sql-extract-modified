@@ -38,6 +38,10 @@ func (p *MockWriter) Write(actual []string) error {
 	return nil
 }
 
+func (p *MockWriter)Flush(){
+
+}
+
 func NewMockWriter(t *testing.T)*MockWriter{
 	expect := make([][]string, 0)
 	return &MockWriter{

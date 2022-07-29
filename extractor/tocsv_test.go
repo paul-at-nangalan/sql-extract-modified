@@ -95,7 +95,7 @@ func Test_Extractor(t *testing.T){
 		` WHERE lastmod > $1 
 		 ORDER BY lastmod`
 	extractor := newExtractor(teststuff.db, mocklastmod, qry, "lastmod",
-		teststuff.testtablename, teststuff.limit)
+		teststuff.testtablename, "", teststuff.limit)
 
 	fillTestTable(mockwriter, true)
 	extractor.Extract(mockwriter)

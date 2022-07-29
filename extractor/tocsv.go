@@ -18,6 +18,7 @@ type LastModifiedModel interface {
 /// Sub in any type of writer
 type Writer interface {
 	Write([]string)error
+	Flush()
 }
 
 type Extractor struct{
@@ -26,17 +27,19 @@ type Extractor struct{
 	batchsize int
 	lastmodfield string
 	tablename string
+
+	goodbeforequery string
 	db *sql.DB
 }
 
 //// The last mod where clause must always take $1 as the last read time parameter
-func NewExtractor(db *sql.DB, qry string, lastmodfield, lastmodtable, tablename string)*Extractor{
+func NewExtractor(db *sql.DB, qry string, lastmodfield, lastmodtable, tablename, goodbeforeqry string)*Extractor{
 	lastmodmodel := models.NewLastModifiedModel(db, lastmodtable, lastmodtable)
-	return newExtractor(db, lastmodmodel, qry,lastmodfield, tablename, 500)
+	return newExtractor(db, lastmodmodel, qry,lastmodfield, tablename, goodbeforeqry, 500)
 }
 /////For testing we can inject a mock last modified model
 func newExtractor(db *sql.DB, lastmodmodel LastModifiedModel,
-	qry string, lastmodfield string, tablename string, limit int)*Extractor {
+	qry string, lastmodfield string, tablename, goodbeforequery string, limit int)*Extractor {
 
 	fullquery := qry + fmt.Sprintf(` LIMIT %d OFFSET $2`, limit)
 	stmt, err := db.Prepare(fullquery)
@@ -49,12 +52,17 @@ func newExtractor(db *sql.DB, lastmodmodel LastModifiedModel,
 		lastmodfield: lastmodfield,
 		tablename: tablename,
 		db: db,
+		goodbeforequery: goodbeforequery,
 	}
 
 }
 
 func (p *Extractor)getMaxLastModTime()time.Time{
-	res, err := p.db.Query(`SELECT MAX(` + p.lastmodfield + `) FROM ` + p.tablename )
+	qry := `SELECT MAX(` + p.lastmodfield + `) FROM ` + p.tablename
+	if p.goodbeforequery != ""{
+		qry += ` WHERE ` + p.lastmodfield + `< (` + p.goodbeforequery + `)`
+	}
+	res, err := p.db.Query(qry)
 	handlers.PanicOnError(err)
 	if !res.Next(){
 		log.Panicln("Unable to get a last modified time, no results returned")
@@ -101,6 +109,7 @@ func (p *Extractor)Extract(writer Writer){
 				handlers.PanicOnError(err)
 
 				writer.Write(cols)
+				writer.Flush()
 			}
 		}()
 	}
