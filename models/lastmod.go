@@ -2,9 +2,10 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
+	"github.com/paul-at-nangalan/db-util/migrator"
 	"log"
 	"time"
-	"github.com/paul-at-nangalan/db-util/migrator"
 )
 import "github.com/paul-at-nangalan/errorhandler/handlers"
 
@@ -18,7 +19,7 @@ func NewLastModifiedModel(db *sql.DB, lastmodtable, datatablename string)*LastMo
 	tablenamefield := "tablename"
 	mig := migrator.NewMigrator(db, migrator.DBTYPE_POSTGRES)
 	cols := map[string]string{
-		lastmodfield: "text",
+		lastmodfield: "timestamp",
 		tablenamefield: "text",
 	}
 	indx := []string{tablenamefield}
@@ -26,14 +27,15 @@ func NewLastModifiedModel(db *sql.DB, lastmodtable, datatablename string)*LastMo
 	mig.Migrate("create-last-mod-table", lastmodtable, cols, indx, primekey)
 
 	getqry := `SELECT ` + lastmodfield + ` FROM ` + lastmodtable +
-		` WHERE tablename=` + datatablename
-
+		` WHERE tablename='` + datatablename + `'`
+	fmt.Println("Qry for last read ", getqry)
 	getstmt, err := db.Prepare(getqry)
 	handlers.PanicOnError(err)
 
-	setqry := `INSERT INTO ` + lastmodtable + ` (` + lastmodfield + `)` +
-		` VALUES($1) WHERE tablename=` + datatablename +
-		` ON CONFICT (tablename) SET ` + lastmodfield + `=` + lastmodfield + `.EXCLUDED`
+	setqry := `INSERT INTO ` + lastmodtable + ` (tablename, ` + lastmodfield + `)` +
+		` VALUES('` + datatablename + `', $1)`  +
+		` ON CONFLICT (tablename) DO UPDATE SET ` + lastmodfield + `=EXCLUDED.` + lastmodfield
+	fmt.Println("Set last mod ", setqry)
 	setstmt, err := db.Prepare(setqry)
 	handlers.PanicOnError(err)
 

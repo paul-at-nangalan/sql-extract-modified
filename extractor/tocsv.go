@@ -34,7 +34,7 @@ type Extractor struct{
 
 //// The last mod where clause must always take $1 as the last read time parameter
 func NewExtractor(db *sql.DB, qry string, lastmodfield, lastmodtable, tablename, goodbeforeqry string)*Extractor{
-	lastmodmodel := models.NewLastModifiedModel(db, lastmodtable, lastmodtable)
+	lastmodmodel := models.NewLastModifiedModel(db, lastmodtable, tablename)
 	return newExtractor(db, lastmodmodel, qry,lastmodfield, tablename, goodbeforeqry, 500)
 }
 /////For testing we can inject a mock last modified model
@@ -42,6 +42,7 @@ func newExtractor(db *sql.DB, lastmodmodel LastModifiedModel,
 	qry string, lastmodfield string, tablename, goodbeforequery string, limit int)*Extractor {
 
 	fullquery := qry + fmt.Sprintf(` LIMIT %d OFFSET $2`, limit)
+	fmt.Println("Extract qry ", fullquery)
 	stmt, err := db.Prepare(fullquery)
 	handlers.PanicOnError(err)
 
@@ -57,12 +58,15 @@ func newExtractor(db *sql.DB, lastmodmodel LastModifiedModel,
 
 }
 
-func (p *Extractor)getMaxLastModTime()time.Time{
+func (p *Extractor)getMaxLastModTime(goodbefore time.Time)time.Time{
+	params := make([]any, 0)
+
 	qry := `SELECT MAX(` + p.lastmodfield + `) FROM ` + p.tablename
 	if p.goodbeforequery != ""{
-		qry += ` WHERE ` + p.lastmodfield + `< (` + p.goodbeforequery + `)`
+		qry += ` WHERE ` + p.lastmodfield + `< $1`
+		params = append(params, goodbefore)
 	}
-	res, err := p.db.Query(qry)
+	res, err := p.db.Query(qry, params...)
 	handlers.PanicOnError(err)
 	if !res.Next(){
 		log.Panicln("Unable to get a last modified time, no results returned")
@@ -75,15 +79,39 @@ func (p *Extractor)getMaxLastModTime()time.Time{
 	return lastmod
 }
 
+func (p *Extractor)getGoodBefore()time.Time{
+	//// Because we use limit and offset, we should get the good before time upfront
+	///  to avoid some change to the good before time resulting in a change to the result set
+	goodbefore := time.Time{}
+	if p.goodbeforequery != ""{
+		res, err := p.db.Query(p.goodbeforequery)
+		handlers.PanicOnError(err)
+		defer res.Close()
+		if !res.Next(){
+			log.Panicln("No data from the good before query ", p.goodbeforequery)
+		}
+		err = res.Scan(&goodbefore)
+		handlers.PanicOnError(err)
+	}
+	return goodbefore
+}
+
 func (p *Extractor)Extract(writer Writer){
 	lastreadtime := p.lastmodifiedmodel.Get()
-	maxlastmod := p.getMaxLastModTime() /// only set this if everything completes successfully
+	goodbefore := p.getGoodBefore()
+	maxlastmod := p.getMaxLastModTime(goodbefore) /// only set this if everything completes successfully
 
 	numcols := 0
 	havemore := true
+	var res *sql.Rows
+	var err error
 	for i := 0; havemore ; i += p.batchsize{
 		func() {
-			res, err := p.sqlstmt.Query(lastreadtime, i)
+			if p.goodbeforequery != ""{
+				res, err = p.sqlstmt.Query(lastreadtime, i, goodbefore)
+			}else {
+				res, err = p.sqlstmt.Query(lastreadtime, i)
+			}
 			handlers.PanicOnError(err)
 			defer res.Close()
 

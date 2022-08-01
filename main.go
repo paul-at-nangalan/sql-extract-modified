@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/paul-at-nangalan/db-util/connect"
 	"github.com/paul-at-nangalan/errorhandler/handlers"
+	"github.com/paul-at-nangalan/json-config/cfg"
 	"os"
 	"sql-extract-modified/extractor"
 )
@@ -35,6 +36,8 @@ func main(){
 		"[optional] If there is a good before marker, to prevent data being read that maybe only partially written, e.g. " +
 		" SELECT good_before FROM data_status WHERE tablename=my_data_table")
 	flag.Parse()
+
+	cfg.Setup(cfgdir)
 
 	db := connect.Connect()
 	extproc := extractor.NewExtractor(db, sqlqry, lastmodfield, lastreadtable,
