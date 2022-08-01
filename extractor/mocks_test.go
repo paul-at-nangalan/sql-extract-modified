@@ -25,6 +25,7 @@ type MockWriter struct{
 func (p *MockWriter) Write(actual []string) error {
 	if len(p.expect) == 0{
 		p.t.Error("Received extra data ", actual)
+		return nil
 	}
 	row := p.expect[0]
 	for i, text := range row{

@@ -76,6 +76,7 @@ func (p *Extractor)getMaxLastModTime(goodbefore time.Time)time.Time{
 	err = res.Scan(&lastmod)
 	handlers.PanicOnError(err)
 
+	fmt.Println("Max Last mod is: ", lastmod)
 	return lastmod
 }
 
@@ -93,11 +94,13 @@ func (p *Extractor)getGoodBefore()time.Time{
 		err = res.Scan(&goodbefore)
 		handlers.PanicOnError(err)
 	}
+	fmt.Println("Good before is: ", goodbefore)
 	return goodbefore
 }
 
 func (p *Extractor)Extract(writer Writer){
 	lastreadtime := p.lastmodifiedmodel.Get()
+	fmt.Println("Min last mod ", lastreadtime)
 	goodbefore := p.getGoodBefore()
 	maxlastmod := p.getMaxLastModTime(goodbefore) /// only set this if everything completes successfully
 

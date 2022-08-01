@@ -37,6 +37,16 @@ func setup(){
 	indexs := []string{"field1"}
 	mig := migrator.NewMigrator(teststuff.db, migrator.DBTYPE_POSTGRES)
 	mig.Migrate("create-test-table", teststuff.testtablename, cols, indexs, primes)
+
+	///create a test-good-before table
+	cols = map[string]string{
+		"name": "text",
+		"time": "timestamp",
+	}
+	primes = []string{"name"}
+	indexs = []string{"name"}
+	mig.Migrate("create-test-good-before-table", "test_good_before",
+		cols, indexs, primes)
 	teststuff.limit = 23
 
 	_, err := teststuff.db.Exec(`DELETE FROM ` + teststuff.testtablename)
@@ -111,6 +121,55 @@ func Test_Extractor(t *testing.T){
 	fillTestTable(mockwriter, true)
 	extractor.Extract(mockwriter)
 
+	///there should be nothing left in the expect list
+	if len(mockwriter.expect) > 0{
+		t.Error("Have unread data (2), num lines ", len(mockwriter.expect))
+	}
+
+	////Test with a good before
+	qry = `SELECT field1, field2, field3 FROM ` + teststuff.testtablename +
+		` WHERE lastmod > $1 AND lastmod < $3 
+		 ORDER BY lastmod`
+	extractor = newExtractor(teststuff.db, mocklastmod, qry, "lastmod",
+		teststuff.testtablename,
+		`SELECT time FROM test_good_before WHERE name='test'`, teststuff.limit)
+	mockwriter = NewMockWriter(t)
+	fillTestTable(mockwriter, true)
+	////set the good before time to a few ms after the last entry
+	goodbeforetime := teststuff.t.Add(2 * time.Millisecond)
+	_, err := teststuff.db.Exec(`INSERT INTO test_good_before (name, time)
+						VALUES($1, $2) ON CONFLICT (name)
+						DO UPDATE SET time=excluded.time `, "test", goodbeforetime)
+	handlers.PanicOnError(err)
+
+	////Make sure the next fill starts after the good before time. Also, gives a clear break in the
+	////test data if we need to look at it in the DB
+	teststuff.t = teststuff.t.Add(5 * time.Second)
+	mockwriter2 := NewMockWriter(t)
+	fillTestTable(mockwriter2, true)
+
+	fmt.Println("Run 3")
+	////this should be limited by the good before time
+	extractor.Extract(mockwriter)
+
+	///there should be nothing left in the expect list
+	if len(mockwriter.expect) > 0{
+		t.Error("Have unread data (3), num lines ", len(mockwriter.expect))
+	}
+
+	goodbeforetime = teststuff.t.Add(2 * time.Second)
+	_, err = teststuff.db.Exec(`INSERT INTO test_good_before (name, time)
+						VALUES($1, $2) ON CONFLICT (name)
+						DO UPDATE SET time=excluded.time `, "test", goodbeforetime)
+
+	fmt.Println("Run 4")
+	///this should not be limited and should read the remaining data
+	extractor.Extract(mockwriter2)
+
+	///there should be nothing left in the expect list
+	if len(mockwriter2.expect) > 0{
+		t.Error("Have unread data (4), num lines ", len(mockwriter.expect))
+	}
 }
 
 func TestMain(m *testing.M) {
